@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+		<link rel="stylesheet" href="./styles.css" />
+
+		<title>FabCompany Using Hyperledger Fabric</title>
+	</head>
+	<body>
+		<div class="text-center">
+			<h1>FabCompany</h1>
+			<button onclick="getAll()">Get All Companies</button>
+			<span>||</span>
+			<input id="search-input" type="text" />
+			<button onclick="search()">Search</button>
+			<div id="show-car"></div>
+		</div>
+
+		<div class="text-center form-container">
+			<h3>Create Company</h3>
+			<form id="createForm" action="" name="createCar">
+				<div>
+					<label for="">Company ID/Key</label>
+					<input name="key" />
+				</div>
+
+				<div>
+					<label for="">Name</label>
+					<input name="name" />
+				</div>
+
+				<div>
+					<label for="">Country</label>
+					<input name="country" />
+				</div>
+
+				<div>
+					<label for="">Type</label>
+					<select name="type" id="type">
+						<option value="private">Private</option>
+						<option value="public">Public</option>
+						<option value="ngo">ngo</option>
+					</select>
+				</div>
+
+				<div>
+					<label for="">Employees</label>
+					<input name="employeeCount" />
+				</div>
+
+				<div>
+					<button type="submit">Create</button>
+				</div>
+			</form>
+		</div>
+
+		<div class="updateForms">
+			<div class="text-center form-container">
+				<h3>Update Company Name</h3>
+
+				<form id="update-nameForm" name="updateName">
+					<div>
+						<label for="">Company ID/Key</label>
+						<input name="key" />
+					</div>
+
+					<div>
+						<label for="">New Name</label>
+						<input name="name" />
+					</div>
+
+					<div>
+						<button class="updateButton" data-property="name">Update</button>
+					</div>
+				</form>
+			</div>
+			<div class="text-center form-container">
+				<h3>Update Country</h3>
+
+				<form id="update-countryForm" name="updateCountry">
+					<div>
+						<label for="">Company ID/Key</label>
+						<input name="key" />
+					</div>
+
+					<div>
+						<label for="">New Country</label>
+						<input name="country" />
+					</div>
+
+					<div>
+						<button class="updateButton" data-property="country">Update</button>
+					</div>
+				</form>
+			</div>
+			<div class="text-center form-container">
+				<h3>Update Employee Count</h3>
+
+				<form id="update-employeeCountForm" name="updateCount">
+					<div>
+						<label for="">Company ID/Key</label>
+						<input name="key" />
+					</div>
+
+					<div>
+						<label for="">New Count</label>
+						<input name="employeeCount" />
+					</div>
+
+					<div>
+						<button class="updateButton" data-property="employeeCount">Update</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<script>
+			// CREATING NEW CAR
+			const createForm = document.getElementById('createForm');
+
+			// THIS IS AN EVENT LISTENER WHICH WILL RUN WHEN WE CLICK THE CREATE BUTTON
+			createForm.addEventListener('submit', function (event) {
+				event.preventDefault();
+				const bodyParam = new URLSearchParams(new FormData(createForm));
+
+				//CALLING CREATE API
+				fetch('http://localhost:3000/create', {
+					method: 'POST',
+					body: bodyParam,
+				})
+					.then((res) => {
+						return res.json();
+					})
+					.then((parsedRes) => {
+						alert(parsedRes.message);
+					})
+					.catch((err) => {
+						console.error({ err });
+					});
+			});
+
+			// THIS IS AN EVENT LISTENER WHICH WILL RUN WHEN WE CLICK THE UPDATE BUTTON
+			function handleUpdateCompany(event) {
+				event.preventDefault();
+				const property = event.target.dataset.property;
+
+				// UPDATE: CHANGING CAR OWNER
+				const updateForm = document.getElementById(`update-${property}Form`);
+
+				const bodyParam = {
+					key: updateForm.elements['key'].value,
+					property,
+					value: updateForm.elements[property].value,
+				};
+				console.log(bodyParam);
+				//CALLING UPDATE API
+				fetch('http://localhost:3000/update', {
+					method: 'POST',
+					body: JSON.stringify(bodyParam),
+					headers: {
+						'Content-Type': 'application/json', // Set content type to JSON
+					},
+				})
+					.then((res) => {
+						if (res.status !== 200) {
+							alert('Unable to update');
+							return;
+						}
+						return res.json();
+					})
+					.then((parsedRes) => {
+						alert(parsedRes.message);
+						getAll();
+					})
+					.catch((err) => {
+						alert(err.message);
+						console.error({ err });
+					});
+			}
+
+			//SEARCH DATA
+			function search() {
+				// extracting value from input field
+				const value = document.getElementById('search-input').value;
+				getAll(value);
+			}
+
+			// GETTING ALL CAR DATA FROM API
+			function getAll(query) {
+				const api = query ? 'http://localhost:3000/get-company?key=' + query : 'http://localhost:3000/get-company';
+				fetch(api)
+					.then((res) => {
+						return res.json();
+					})
+					.then((parsedRes) => {
+						let carMarkup = '';
+						console.log(parsedRes);
+						parsedRes.forEach((item) => {
+							let key = item.Key;
+							let Item = item;
+							if (item.Record.Key) {
+								key = item.Record.Key;
+								Item = item.Record;
+							}
+							carMarkup =
+								carMarkup +
+								`<div class="car-item">
+			                             <p>Key: ${key}</p>
+			                             <p>Name: ${Item.Record.name}</p>
+			                             <p>Type: ${Item.Record.type}</p>
+			                             <p>Country: ${Item.Record.country}</p>
+			                             <p>Employees: ${Item.Record.employeeCount}</p>
+			                             <p>Reputation: ${Item.Record.reputation}</p>
+			                             <p>Cash In Flow: ${Item.Record.cashInFlow}</p>
+			                             <p>Cash Out Flow: ${Item.Record.cashOutFlow}</p>
+			                         </div>`;
+						});
+						// getting the html container with id=show-car
+						const carContainer = document.getElementById('show-car');
+
+						//CLEANING EXISTING CAR HTML NODE/ELEMENT
+						while (carContainer.hasChildNodes()) {
+							carContainer.removeChild(carContainer.firstChild);
+						}
+
+						// Adding new car data markup
+						carContainer.insertAdjacentHTML('beforeend', carMarkup);
+					})
+					.catch((err) => {
+						alert('Operation failed');
+						console.error({ err });
+					});
+			}
+			const updateButtons = document.querySelectorAll('.updateButton');
+
+			// Loop through each button and attach event listener
+			updateButtons.forEach(function (button) {
+				button.addEventListener('click', handleUpdateCompany);
+			});
+		</script>
+	</body>
+</html>
